@@ -1,17 +1,17 @@
-from docxtpl import DocxTemplate
-import os
+from utils import render_agreements
+from utils import render_report
+from utils import render_code
 
 
-replacements_once = {
+replacements_programm = {
     "theme": "Программная система классификации жалоб поступающих в службу 005 с использованием векторной модели представления знаний и машинного обучения",
-    "annotation": '''Программа для ЭВМ «Программная система формирования рекуррентных нейронных сетей гибридным самоконфигурируемым эволюционным алгоритмом» предназначена для поиска моделей динамических объектов и процессов и позволяет в автоматизированном режиме искусственные конструировать нейронные сети с обратными связями. Для построения модели используется комбинация из самоконфигурируемого алгоритма генетического программирования, который оптимизирует структуру нейронной сети и самоконфигурируемого генетического алгоритма, который оптимизирует весовые коэффициенты нейронной сети. 
+    "annotation": """Программа для ЭВМ «Программная система формирования рекуррентных нейронных сетей гибридным самоконфигурируемым эволюционным алгоритмом» предназначена для поиска моделей динамических объектов и процессов и позволяет в автоматизированном режиме искусственные конструировать нейронные сети с обратными связями. Для построения модели используется комбинация из самоконфигурируемого алгоритма генетического программирования, который оптимизирует структуру нейронной сети и самоконфигурируемого генетического алгоритма, который оптимизирует весовые коэффициенты нейронной сети. 
 Программа для ЭВМ реализована в рамках проекта № 075-15-2022-1121 «Гибридные методы моделирования и оптимизации в сложных системах».
-''',
+""",
     "computer_type": "Процессор Intel(R) Core(TM) от 1 ГГц, от 128 МБ 03У.",
-    "implementation_language":"Python",
-    "os_type":"Windows 7/8/10/11",
-    "programm_size":"77.2 МБ."
-
+    "implementation_language": "Python",
+    "os_type": "Windows 7/8/10/11",
+    "programm_size": "77.2 МБ.",
 }
 
 replacements_autors = {
@@ -43,38 +43,26 @@ replacements_autors = {
     },
 }
 
-file_agreements_paths = [
-    "templates\Согласие_на_обработку_Шаблон.docx",
-    "templates\Согласие_на_указание_Шаблон.docx",
-]
-
-file_report_path = "templates\РЕФЕРАТ_Шаблон.docx"
-
 
 save_path = ""
 
-# Соглашения
-for file_agreement_path in file_agreements_paths:
 
-    for author, replacements in replacements_autors.items():
-        doc = DocxTemplate(file_agreement_path)
-        doc.render(replacements | replacements_once)
-
-        file_name = os.path.basename(file_agreement_path.replace("Шаблон", author))
-
-        full_file_path = os.path.join(save_path, file_name)
-
-        doc.save(full_file_path)
-
-# Реферат
-doc = DocxTemplate(file_report_path)
-
-author_names_dict = {"author_names": ', '.join([name for name in replacements_autors.keys()])}
-
-doc.render(author_names_dict | replacements_once)
-file_name = os.path.basename(file_report_path.replace("Шаблон", replacements_once["theme"]))
-
-full_file_path = os.path.join(save_path, file_name)
-doc.save(full_file_path)
+render_agreements(
+    replacements_autors=replacements_autors,
+    replacements_programm=replacements_programm,
+    save_path=save_path,
+)
 
 
+render_report(
+    replacements_autors=replacements_autors,
+    replacements_programm=replacements_programm,
+    save_path=save_path,
+)
+
+
+render_code(
+    replacements_autors=replacements_autors,
+    replacements_programm=replacements_programm,
+    save_path=save_path,
+)
