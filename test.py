@@ -15,9 +15,20 @@ replacements_programm = {
 }
 
 replacements_autors = {
-    "Шерстнев Павел Александрович": {
-        "subject_name": "Шерстнев Павел Александрович",
-        "subject_address": "РФ, 662155, г. Ачинск, ул. Уличная, д. 312, кв. 32",
+    "author1": {
+        "subject_name": {
+            "surname": "Шерстнев",
+            "name": "Павел",
+            "middle_name": "Александрович",
+        },
+        "subject_address": {
+            "country": "РФ",
+            "post_index": "662155",
+            "city": "Ачинск",
+            "street": "Уличная",
+            "home_num": "312",
+            "appartment_num": "32",
+        },
         "passport_series": "1234",
         "passport_number": "567890",
         "passport_issued_by": "ОУФМС России в г. Москве",
@@ -28,9 +39,20 @@ replacements_autors = {
         "birthyear": "1999",
         "country": "Россия",
     },
-    "Кожин Константин Дмитриевич": {
-        "subject_name": "Кожин Константин Дмитриевич",
-        "subject_address": "РФ, 662155, г. Красноярск, ул. Ленина, д. 22, кв. 33",
+    "author2": {
+        "subject_name": {
+            "surname": "Кожин",
+            "name": "Константин",
+            "middle_name": "Дмитриевич",
+        },
+        "subject_address": {
+            "country": "РФ",
+            "post_index": "662155",
+            "city": "Красноярск",
+            "street": "Ленина",
+            "home_num": "22",
+            "appartment_num": "33",
+        },
         "passport_series": "4321",
         "passport_number": "098765",
         "passport_issued_by": "ОУФМС России в г. Москве",
