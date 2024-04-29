@@ -1,7 +1,51 @@
 from docxtpl import DocxTemplate
 from typing import Dict, List
 import os
+from docx import Document
+from docx.shared import Pt
 
+
+file_agreements_paths: List[str] = [
+    "templates\\Согласие_на_обработку_Шаблон.docx",
+    "templates\\Согласие_на_указание_Шаблон.docx",
+]
+
+file_report_path: str = "templates\\РЕФЕРАТ_Шаблон.docx"
+file_code_path: str = "templates\\Идентифицирующие_ПрЭВМ_Шаблон.docx"
+file_contract_path: str = "templates\\ДОГОВОР_с_авторами_Шаблон.docx"
+
+
+def insert_authors_table(document_path, marker_text, authors_info):
+    doc = Document(document_path)
+    
+    # Найти абзац с маркерным текстом
+    for paragraph in doc.paragraphs:
+        print(marker_text)
+        if marker_text in paragraph.text:
+            print("нашел")
+            # Создание таблицы непосредственно после маркера
+            table = doc.add_table(rows=1, cols=3)
+            
+            # Заполнение заголовков таблицы
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = 'Данные о соавторе, являющемся сотрудником СФУ'
+            hdr_cells[1].text = 'Размер, %'
+            hdr_cells[2].text = 'Подпись'
+
+            # Заполнение строк таблицы данными авторов
+            for author, details in authors_info.items():
+                initials = f"{details['subject_name']['name'][0]}.{details['subject_name']['middle_name'][0]}."
+                row_cells = table.add_row().cells
+                row_cells[0].text = f"{details['subject_name']['surname']} {initials}"
+                row_cells[1].text = ''  # Добавьте размер, если он доступен
+                row_cells[2].text = '_______________ /'
+            
+            # Добавить разрыв строки после таблицы
+            doc.add_paragraph()
+            break  # Прекратить поиск после первого совпадения
+    
+    # Сохранить измененный документ
+    doc.save(document_path)
 
 def format_address(address):
     """
@@ -15,6 +59,27 @@ def format_address(address):
         f"ул. {address['street']}, д. {address['home_num']}, кв. {address['appartment_num']}"
     )
     return formatted_address
+
+
+def format_author_signature(authors_info):
+    """
+    Формирует информацию о подписи авторов для документа.
+    
+    :param authors_info: Словарь с информацией об авторах.
+    :return: Строка, содержащая информацию о подписях авторов, разделенная символом новой строки.
+    """
+    template = "{surname} {name} {middle_name}\n_______________ / {initials} {surname}\n"
+    author_texts = []
+    for details in authors_info.values():
+        initials = f"{details['subject_name']['name'][0]}.{details['subject_name']['middle_name'][0]}."
+        text = template.format(
+            surname=details['subject_name']['surname'],
+            name=details['subject_name']['name'],
+            middle_name=details['subject_name']['middle_name'],
+            initials=initials
+        )
+        author_texts.append(text)
+    return "\n".join(author_texts)
 
 
 def format_name(subject_name, full_name=True):
@@ -35,13 +100,37 @@ def format_name(subject_name, full_name=True):
         return f"{subject_name['surname']} {initials}"
 
 
-file_agreements_paths: List[str] = [
-    "templates\\Согласие_на_обработку_Шаблон.docx",
-    "templates\\Согласие_на_указание_Шаблон.docx",
-]
-
-file_report_path: str = "templates\\РЕФЕРАТ_Шаблон.docx"
-file_code_path: str = "templates\\Идентифицирующие_ПрЭВМ_Шаблон.docx"
+def format_authors_info(authors_info):
+    """
+    Форматирует информацию об авторах по заданному шаблону.
+    
+    :param authors_info: Словарь с информацией об авторах.
+    :return: Строка, содержащая информацию обо всех авторах, разделенная символом новой строки.
+    """
+    template = (
+        "{surname}, {name}, {middle_name}, личность удостоверена паспортом серии {series} № {number}, "
+        "выданным {issued_by}, код подразделения {division_code}, дата выдачи {issue_date}, "
+        "зарегистрированный по адресу {post_index}, г. {city}, дом {home_num}, квартира {appartment_num}, "
+        "являющийся (являющаяся) сотрудником Университета, в дальнейшем именуемый «Соавтор»;"
+    )
+    author_texts = []
+    for details in authors_info.values():
+        text = template.format(
+            surname=details['subject_name']['surname'],
+            name=details['subject_name']['name'],
+            middle_name=details['subject_name']['middle_name'],
+            series=details['passport_series'],
+            number=details['passport_number'],
+            issued_by=details['passport_issued_by'],
+            division_code=details['passport_division_code'],
+            issue_date=details['passport_issue_date'],
+            post_index=details['subject_address']['post_index'],
+            city=details['subject_address']['city'],
+            home_num=details['subject_address']['home_num'],
+            appartment_num=details['subject_address']['appartment_num']
+        )
+        author_texts.append(text)
+    return "\n".join(author_texts)
 
 
 # Утилита для сохранения документа
@@ -116,7 +205,33 @@ def render_code(
         for replacements in replacements_autors.values()
     )
 
+    
+
     replacements = {"author_names_short": author_names} | replacements_programm
     render_document(
         file_code_path, replacements, save_path, replacements_programm["theme"]
     )
+
+
+def render_contract(
+    replacements_autors: Dict[str, Dict[str, str]],
+    replacements_programm: Dict[str, str],
+    save_path: str, 
+):
+    authors_info = {"authors_info" : format_authors_info(replacements_autors)}
+    author_signature = {"authors_signature" : format_author_signature(replacements_autors)}
+    
+    replacements = authors_info | replacements_programm | author_signature
+
+    doc = DocxTemplate(file_contract_path)
+    doc.render(replacements)
+
+    file_name = os.path.basename(file_contract_path.replace("Шаблон", replacements_programm["theme"]))
+    full_file_path = os.path.join(save_path, file_name)
+    doc.save(full_file_path)
+
+    marker_text = "тексттекст"
+    
+    insert_authors_table(full_file_path, marker_text, replacements_autors)
+
+    doc.save(full_file_path)

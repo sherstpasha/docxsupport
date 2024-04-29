@@ -1,6 +1,7 @@
 from utils import render_agreements
 from utils import render_report
 from utils import render_code
+from utils import render_contract
 
 
 replacements_programm = {
@@ -84,6 +85,12 @@ render_report(
 
 
 render_code(
+    replacements_autors=replacements_autors,
+    replacements_programm=replacements_programm,
+    save_path=save_path,
+)
+
+render_contract(
     replacements_autors=replacements_autors,
     replacements_programm=replacements_programm,
     save_path=save_path,
