@@ -2,6 +2,8 @@ from utils import render_agreements
 from utils import render_report
 from utils import render_code
 from utils import render_contract
+from utils import render_form
+from utils import render_calculation
 
 
 replacements_programm = {
@@ -39,6 +41,7 @@ replacements_autors = {
         "birthmonth": "01",
         "birthyear": "1999",
         "country": "Россия",
+        "reason": "в силу свободного",
     },
     "author2": {
         "subject_name": {
@@ -63,6 +66,7 @@ replacements_autors = {
         "birthmonth": "03",
         "birthyear": "2002",
         "country": "Россия",
+        "reason": "в силу свободного",
     },
 }
 
@@ -91,6 +95,20 @@ render_code(
 )
 
 render_contract(
+    replacements_autors=replacements_autors,
+    replacements_programm=replacements_programm,
+    save_path=save_path,
+)
+
+
+render_form(
+    replacements_autors=replacements_autors,
+    replacements_programm=replacements_programm,
+    save_path=save_path,
+)
+
+
+render_calculation(
     replacements_autors=replacements_autors,
     replacements_programm=replacements_programm,
     save_path=save_path,

@@ -2,7 +2,8 @@ from docxtpl import DocxTemplate
 from typing import Dict, List
 import os
 from docx import Document
-from docx.shared import Pt
+from copy import deepcopy
+from docx.oxml import OxmlElement
 
 
 file_agreements_paths: List[str] = [
@@ -13,39 +14,40 @@ file_agreements_paths: List[str] = [
 file_report_path: str = "templates\\РЕФЕРАТ_Шаблон.docx"
 file_code_path: str = "templates\\Идентифицирующие_ПрЭВМ_Шаблон.docx"
 file_contract_path: str = "templates\\ДОГОВОР_с_авторами_Шаблон.docx"
+file_form_path: str = "templates\\АНКЕТА_РИД_Шаблон.docx"
+file_calculation_path: str = "templates\\Калькуляция_НМА_Шаблон.docx"
 
 
-def insert_authors_table(document_path, marker_text, authors_info):
-    doc = Document(document_path)
-    
-    # Найти абзац с маркерным текстом
-    for paragraph in doc.paragraphs:
-        print(marker_text)
-        if marker_text in paragraph.text:
-            print("нашел")
-            # Создание таблицы непосредственно после маркера
-            table = doc.add_table(rows=1, cols=3)
-            
-            # Заполнение заголовков таблицы
-            hdr_cells = table.rows[0].cells
-            hdr_cells[0].text = 'Данные о соавторе, являющемся сотрудником СФУ'
-            hdr_cells[1].text = 'Размер, %'
-            hdr_cells[2].text = 'Подпись'
+def add_authors_to_table(
+    doc: Document, authors_info: Dict[str, Dict[str, Dict[str, str]]]
+) -> Document:
+    # Получаем первую таблицу в документе
+    table = doc.tables[0]
 
-            # Заполнение строк таблицы данными авторов
-            for author, details in authors_info.items():
-                initials = f"{details['subject_name']['name'][0]}.{details['subject_name']['middle_name'][0]}."
-                row_cells = table.add_row().cells
-                row_cells[0].text = f"{details['subject_name']['surname']} {initials}"
-                row_cells[1].text = ''  # Добавьте размер, если он доступен
-                row_cells[2].text = '_______________ /'
-            
-            # Добавить разрыв строки после таблицы
-            doc.add_paragraph()
-            break  # Прекратить поиск после первого совпадения
-    
-    # Сохранить измененный документ
-    doc.save(document_path)
+    # Рассчитываем проценты для каждого автора, округлённые до двух знаков после запятой
+    num_authors = len(authors_info)
+    percent_per_author = round(100 / num_authors, 2)
+
+    # Чтобы сумма процентов была ровно 100, корректируем процент для последнего автора
+    # Это компенсирует потери при округлении
+    total_percent = percent_per_author * (num_authors - 1)
+    last_author_percent = round(100 - total_percent, 2)
+
+    # Добавляем информацию об авторах в таблицу
+    for index, details in enumerate(authors_info.values()):
+        # Формируем полное ФИО
+        full_name = f"{details['subject_name']['surname']} {details['subject_name']['name']} {details['subject_name']['middle_name']}"
+        # Добавляем строку
+        row_cells = table.add_row().cells
+        row_cells[0].text = full_name
+        # Распределение процентов с корректировкой для последнего автора
+        if index == num_authors - 1:  # Если это последний автор в списке
+            row_cells[1].text = f"{last_author_percent}%"  # Корректируем процент
+        else:
+            row_cells[1].text = f"{percent_per_author}%"
+
+    return doc
+
 
 def format_address(address):
     """
@@ -64,19 +66,21 @@ def format_address(address):
 def format_author_signature(authors_info):
     """
     Формирует информацию о подписи авторов для документа.
-    
+
     :param authors_info: Словарь с информацией об авторах.
     :return: Строка, содержащая информацию о подписях авторов, разделенная символом новой строки.
     """
-    template = "{surname} {name} {middle_name}\n_______________ / {initials} {surname}\n"
+    template = (
+        "{surname} {name} {middle_name}\n_______________ / {initials} {surname}\n"
+    )
     author_texts = []
     for details in authors_info.values():
         initials = f"{details['subject_name']['name'][0]}.{details['subject_name']['middle_name'][0]}."
         text = template.format(
-            surname=details['subject_name']['surname'],
-            name=details['subject_name']['name'],
-            middle_name=details['subject_name']['middle_name'],
-            initials=initials
+            surname=details["subject_name"]["surname"],
+            name=details["subject_name"]["name"],
+            middle_name=details["subject_name"]["middle_name"],
+            initials=initials,
         )
         author_texts.append(text)
     return "\n".join(author_texts)
@@ -103,7 +107,7 @@ def format_name(subject_name, full_name=True):
 def format_authors_info(authors_info):
     """
     Форматирует информацию об авторах по заданному шаблону.
-    
+
     :param authors_info: Словарь с информацией об авторах.
     :return: Строка, содержащая информацию обо всех авторах, разделенная символом новой строки.
     """
@@ -116,18 +120,18 @@ def format_authors_info(authors_info):
     author_texts = []
     for details in authors_info.values():
         text = template.format(
-            surname=details['subject_name']['surname'],
-            name=details['subject_name']['name'],
-            middle_name=details['subject_name']['middle_name'],
-            series=details['passport_series'],
-            number=details['passport_number'],
-            issued_by=details['passport_issued_by'],
-            division_code=details['passport_division_code'],
-            issue_date=details['passport_issue_date'],
-            post_index=details['subject_address']['post_index'],
-            city=details['subject_address']['city'],
-            home_num=details['subject_address']['home_num'],
-            appartment_num=details['subject_address']['appartment_num']
+            surname=details["subject_name"]["surname"],
+            name=details["subject_name"]["name"],
+            middle_name=details["subject_name"]["middle_name"],
+            series=details["passport_series"],
+            number=details["passport_number"],
+            issued_by=details["passport_issued_by"],
+            division_code=details["passport_division_code"],
+            issue_date=details["passport_issue_date"],
+            post_index=details["subject_address"]["post_index"],
+            city=details["subject_address"]["city"],
+            home_num=details["subject_address"]["home_num"],
+            appartment_num=details["subject_address"]["appartment_num"],
         )
         author_texts.append(text)
     return "\n".join(author_texts)
@@ -205,8 +209,6 @@ def render_code(
         for replacements in replacements_autors.values()
     )
 
-    
-
     replacements = {"author_names_short": author_names} | replacements_programm
     render_document(
         file_code_path, replacements, save_path, replacements_programm["theme"]
@@ -216,22 +218,81 @@ def render_code(
 def render_contract(
     replacements_autors: Dict[str, Dict[str, str]],
     replacements_programm: Dict[str, str],
-    save_path: str, 
+    save_path: str,
 ):
-    authors_info = {"authors_info" : format_authors_info(replacements_autors)}
-    author_signature = {"authors_signature" : format_author_signature(replacements_autors)}
-    
+    authors_info = {"authors_info": format_authors_info(replacements_autors)}
+    author_signature = {
+        "authors_signature": format_author_signature(replacements_autors)
+    }
+
     replacements = authors_info | replacements_programm | author_signature
 
     doc = DocxTemplate(file_contract_path)
     doc.render(replacements)
 
-    file_name = os.path.basename(file_contract_path.replace("Шаблон", replacements_programm["theme"]))
+    file_name = os.path.basename(
+        file_contract_path.replace("Шаблон", replacements_programm["theme"])
+    )
     full_file_path = os.path.join(save_path, file_name)
+
+    add_authors_to_table(doc, replacements_autors)
     doc.save(full_file_path)
 
-    marker_text = "тексттекст"
-    
-    insert_authors_table(full_file_path, marker_text, replacements_autors)
 
+def render_form(
+    replacements_autors: Dict[str, Dict[str, str]],
+    replacements_programm: Dict[str, str],
+    save_path: str,
+):
+    render_document(
+        file_form_path, replacements_programm, save_path, replacements_programm["theme"]
+    )
+
+
+def render_calculation(
+    replacements_autors: Dict[str, Dict[str, str]],
+    replacements_programm: Dict[str, str],
+    save_path: str,
+):
+    doc = Document(file_calculation_path)
+
+    reasons_to_table_index = {
+        "в силу закона": 0,
+        "в силу договора": 1,
+        "в силу свободного": 2,
+    }
+
+    # Создаем новый список для хранения объектов таблиц после копирования
+    new_tables = []
+
+    # Перебор авторов и их причин
+    for author_data in replacements_autors.values():
+        reason = author_data["reason"]
+        table_index = reasons_to_table_index.get(reason)
+        if table_index is not None:
+            # Создаем новую таблицу путем копирования XML из существующей
+            table_to_copy = doc.tables[table_index]
+            new_tbl_xml = deepcopy(table_to_copy._tbl)
+            # Добавляем новую таблицу XML в документ и получаем ссылку на нее
+            doc._body._element.append(new_tbl_xml)
+            # Получаем только что добавленную таблицу как последний элемент среди таблиц документа
+            new_table = doc.tables[-1]
+            # Добавляем ФИО автора во второй столбец первой строки новой таблицы
+            new_table.cell(0, 1).text = (
+                f"{author_data['subject_name']['surname']} {author_data['subject_name']['name']} {author_data['subject_name']['middle_name']}"
+            )
+            new_tables.append(new_table)
+
+    # Удаляем оригинальные таблицы, которые мы скопировали
+    for table in doc.tables:
+        if table not in new_tables:
+            tbl_elm = table._tbl
+            tbl_elm.getparent().remove(tbl_elm)
+
+    file_name = os.path.basename(
+        file_calculation_path.replace("Шаблон", replacements_programm["theme"])
+    )
+    full_file_path = os.path.join(save_path, file_name)
+
+    # Сохранение измененного документа
     doc.save(full_file_path)
