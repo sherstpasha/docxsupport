@@ -4,6 +4,7 @@ from utils import render_code
 from utils import render_contract
 from utils import render_form
 from utils import render_calculation
+from utils import render_notification
 
 
 replacements_programm = {
@@ -110,6 +111,12 @@ render_form(
 
 render_calculation(
     replacements_autors=replacements_autors,
+    replacements_programm=replacements_programm,
+    save_path=save_path,
+)
+
+
+render_notification(replacements_autors=replacements_autors,
     replacements_programm=replacements_programm,
     save_path=save_path,
 )

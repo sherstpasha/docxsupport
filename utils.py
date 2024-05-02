@@ -6,6 +6,9 @@ from copy import deepcopy
 from docx.oxml import OxmlElement
 from docx.shared import Pt
 
+from docx.oxml import parse_xml
+from docx.oxml.ns import nsdecls
+
 
 file_agreements_paths: List[str] = [
     "templates\\Согласие_на_обработку_Шаблон.docx",
@@ -17,6 +20,17 @@ file_code_path: str = "templates\\Идентифицирующие_ПрЭВМ_Ш
 file_contract_path: str = "templates\\ДОГОВОР_с_авторами_Шаблон.docx"
 file_form_path: str = "templates\\АНКЕТА_РИД_Шаблон.docx"
 file_calculation_path: str = "templates\\Калькуляция_НМА_Шаблон.docx"
+file_notification_path: str = "templates\\Уведомление_на_ОАП_Шаблон.docx"
+
+
+
+def set_cell_background(cell, fill_color):
+    """ Установить цвет фона ячейки.
+    :param cell: объект ячейки docx.table._Cell
+    :param fill_color: Цвет фона в шестнадцатеричном формате, например 'FFFF00' для желтого
+    """
+    shading_elm = parse_xml(r'<w:shd {} w:fill="{}"/>'.format(nsdecls('w'), fill_color))
+    cell._tc.get_or_add_tcPr().append(shading_elm)
 
 
 def add_authors_to_table(
@@ -303,3 +317,44 @@ def render_calculation(
 
     # Сохранение измененного документа
     doc.save(full_file_path)
+
+
+def render_notification(
+    replacements_autors: Dict[str, Dict[str, str]],
+    replacements_programm: Dict[str, str],
+    save_path: str,
+):
+    doc = Document(file_notification_path)
+
+    target_table = doc.tables[2]
+
+    template_rows = [row for row in target_table.rows]
+
+    reasons_to_row_index = {
+        "в силу закона": 0,
+        "в силу договора": 1,
+        "в силу свободного": 2,
+    }
+
+    for author_data in replacements_autors.values():
+        reason = author_data['reason']
+        if reason in reasons_to_row_index:
+            row_index = reasons_to_row_index[reason]
+            template_row = template_rows[row_index]
+            new_row = target_table.add_row()
+            for idx, cell in enumerate(new_row.cells):
+                set_cell_background(cell, 'D9D9D9')  # Пример установки серого фона
+                for para in template_row.cells[idx].paragraphs:
+                    new_para = cell.add_paragraph()
+                    new_para.paragraph_format.alignment = para.paragraph_format.alignment
+                    for run in para.runs:
+                        new_run = new_para.add_run(run.text)
+                        # Копируем стили шрифта
+                        new_run.bold = run.bold
+                        new_run.italic = run.italic
+                        new_run.underline = run.underline
+                        new_run.font.size = run.font.size
+                        new_run.font.color.rgb = run.font.color.rgb
+                        new_run.font.name = run.font.name
+
+    doc.save(file_notification_path.replace("Шаблон", replacements_programm["theme"]))
