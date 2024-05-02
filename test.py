@@ -66,7 +66,7 @@ replacements_autors = {
         "birthmonth": "03",
         "birthyear": "2002",
         "country": "Россия",
-        "reason": "в силу свободного",
+        "reason": "в силу закона",
     },
 }
 

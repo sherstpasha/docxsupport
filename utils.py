@@ -4,6 +4,7 @@ import os
 from docx import Document
 from copy import deepcopy
 from docx.oxml import OxmlElement
+from docx.shared import Pt
 
 
 file_agreements_paths: List[str] = [
@@ -262,36 +263,42 @@ def render_calculation(
         "в силу свободного": 2,
     }
 
-    # Создаем новый список для хранения объектов таблиц после копирования
-    new_tables = []
+    new_tables = []  # Список для хранения новых таблиц
 
-    # Перебор авторов и их причин
+    # Добавляем новые таблицы в документ
     for author_data in replacements_autors.values():
-        reason = author_data["reason"]
-        table_index = reasons_to_table_index.get(reason)
-        if table_index is not None:
-            # Создаем новую таблицу путем копирования XML из существующей
-            table_to_copy = doc.tables[table_index]
-            new_tbl_xml = deepcopy(table_to_copy._tbl)
-            # Добавляем новую таблицу XML в документ и получаем ссылку на нее
-            doc._body._element.append(new_tbl_xml)
-            # Получаем только что добавленную таблицу как последний элемент среди таблиц документа
+        reason = author_data['reason']
+        if reason in reasons_to_table_index:
+            table_index = reasons_to_table_index[reason]
+            original_table = doc.tables[table_index]
+            new_table_xml = deepcopy(original_table._tbl)
+            doc._body._element.append(new_table_xml)
             new_table = doc.tables[-1]
-            # Добавляем ФИО автора во второй столбец первой строки новой таблицы
-            new_table.cell(0, 1).text = (
-                f"{author_data['subject_name']['surname']} {author_data['subject_name']['name']} {author_data['subject_name']['middle_name']}"
-            )
-            new_tables.append(new_table)
+            new_tables.append(new_table)  # Сохраняем объект таблицы, а не XML
 
-    # Удаляем оригинальные таблицы, которые мы скопировали
-    for table in doc.tables:
-        if table not in new_tables:
-            tbl_elm = table._tbl
-            tbl_elm.getparent().remove(tbl_elm)
+    # Удаляем оригинальные таблицы
+    original_tables_to_remove = [doc.tables[i] for i in reasons_to_table_index.values()]
+    for table in original_tables_to_remove:
+        p_element = table._element.getparent()
+        p_element.remove(table._element)
 
-    file_name = os.path.basename(
-        file_calculation_path.replace("Шаблон", replacements_programm["theme"])
-    )
+    # Заполняем новые таблицы данными авторов и добавляем пустые параграфы
+    for author_data, new_table in zip(replacements_autors.values(), new_tables):
+        full_name = f"{author_data['subject_name']['surname']} {author_data['subject_name']['name']} {author_data['subject_name']['middle_name']}"
+        cell = new_table.rows[0].cells[1]
+        para = cell.paragraphs[0]
+        run = para.add_run(full_name)
+        run.font.size = Pt(10)  # Устанавливаем размер шрифта 10 пунктов
+        para.add_run()  # Завершаем текущий run, чтобы применить стиль
+
+        # Добавляем пустой параграф после каждой таблицы
+        p = doc.add_paragraph()
+        new_table._element.addnext(p._p)
+
+
+
+
+    file_name = os.path.basename(file_calculation_path.replace("Шаблон", replacements_programm["theme"]))
     full_file_path = os.path.join(save_path, file_name)
 
     # Сохранение измененного документа
