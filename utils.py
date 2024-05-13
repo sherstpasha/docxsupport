@@ -357,4 +357,8 @@ def render_notification(
                         new_run.font.color.rgb = run.font.color.rgb
                         new_run.font.name = run.font.name
 
-    doc.save(file_notification_path.replace("Шаблон", replacements_programm["theme"]))
+    file_name = os.path.basename(file_notification_path.replace("Шаблон", replacements_programm["theme"]))
+    full_file_path = os.path.join(save_path, file_name)
+
+    # Сохранение измененного документа
+    doc.save(full_file_path)
