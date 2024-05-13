@@ -129,7 +129,7 @@ def format_authors_info(authors_info):
     template = (
         "{surname}, {name}, {middle_name}, личность удостоверена паспортом серии {series} № {number}, "
         "выданным {issued_by}, код подразделения {division_code}, дата выдачи {issue_date}, "
-        "зарегистрированный по адресу {post_index}, г. {city}, дом {home_num}, квартира {appartment_num}, "
+        "зарегистрированный по адресу {post_index}, г. {city}, улица {street} , дом {home_num}, квартира {appartment_num}, "
         "являющийся (являющаяся) сотрудником Университета, в дальнейшем именуемый «Соавтор»;"
     )
     author_texts = []
@@ -144,6 +144,7 @@ def format_authors_info(authors_info):
             division_code=details["passport_division_code"],
             issue_date=details["passport_issue_date"],
             post_index=details["subject_address"]["post_index"],
+            street=details["subject_address"]["street"],
             city=details["subject_address"]["city"],
             home_num=details["subject_address"]["home_num"],
             appartment_num=details["subject_address"]["appartment_num"],

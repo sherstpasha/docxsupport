@@ -4,11 +4,11 @@ from utils import render_agreements, render_report, render_code, render_contract
 
 def main(file_path, save_path):
     # Загрузка данных из Excel
-    data_excel = pd.read_excel(file_path)
+    data_excel = pd.read_excel(file_path, dtype=str)
     program_data = data_excel.iloc[0]  # предполагаем, что данные о программе находятся в первой строке
 
     # Загрузка данных об авторах из второго листа
-    authors_data = pd.read_excel(file_path, sheet_name=1)
+    authors_data = pd.read_excel(file_path, sheet_name=1, dtype=str)
 
     # Создание словаря авторов
     replacements_autors = {}
@@ -16,28 +16,28 @@ def main(file_path, save_path):
         author_key = f"author{index+1}"
         replacements_autors[author_key] = {
             "subject_name": {
-                "surname": row['фамилия'],
-                "name": row['Имя'],
-                "middle_name": row['middle_name'],
+                "surname": str(row['фамилия']),
+                "name": str(row['Имя']),
+                "middle_name": str(row['middle_name']),
             },
             "subject_address": {
-                "country": row['Страна'],
-                "post_index": row['post_index'],
-                "city": row['город'],
-                "street": row['улица'],
-                "home_num": row['home_num'],
-                "appartment_num": row['номер квартиры'],
+                "country": str(row['Страна']),
+                "post_index": str(row['post_index']),
+                "city": str(row['город']),
+                "street": str(row['улица']),
+                "home_num": str(row['home_num']),
+                "appartment_num": str(row['номер квартиры']),
             },
-            "passport_series": row['passport_series'],
-            "passport_number": row['passport_number'],
-            "passport_issued_by": row['passport_issued_by'],
-            "passport_issue_date": row['passport_issue_date'].strftime("%d.%m.%Y"),
-            "passport_division_code": row['passport_division_code'],
-            "birthday": row['birthday'],
-            "birthmonth": row['birthmonth'],
-            "birthyear": row['birthyear'],
-            "country": row['country'],
-            "reason": row['reason'],
+            "passport_series": str(row['passport_series']),
+            "passport_number": str(row['passport_number']),
+            "passport_issued_by": str(row['passport_issued_by']),
+            "passport_issue_date": pd.to_datetime(row['passport_issue_date']).strftime("%d.%m.%Y"),
+            "passport_division_code": str(row['passport_division_code']),
+            "birthday": str(row['birthday']),
+            "birthmonth": str(row['birthmonth']),
+            "birthyear": str(row['birthyear']),
+            "country": str(row['country']),
+            "reason": str(row['reason']),
         }
 
     # Обновление словаря для программы
